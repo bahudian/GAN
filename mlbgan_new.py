@@ -41,15 +41,6 @@ x_test = df_x_test.values
 y_train = df_y_train.values
 y_test = df_y_test.values
 
-# Split into training and test sets
-#train, test = train_test_split(df_train, test_size=0.3)
-
-# Split training and test sets into input and output data
-#x_train = train.drop(['R'], axis=1)
-#y_train = train['R']
-#x_test = test.drop(['R'], axis=1)
-#y_test = test['R']
-
 # Define the neural network model
 model = Sequential([
     Dense(64, activation='relu', input_dim=x_train.shape[1]), Dropout(0.3),
@@ -59,16 +50,16 @@ model = Sequential([
 ])
 
 # Compile the model
-model.compile(loss='mean_squared_error', optimizer='adamax')
+model.compile(loss='mean_squared_error', optimizer='rmsprop')
 
 # Define early stopping callback
 monitor = EarlyStopping(monitor='val_loss', min_delta=1e-3, 
-        patience=500, verbose=1, mode='auto',
+        patience=500, mode='auto',
         restore_best_weights=True)
 
 # Train the model
 model.fit(x_train, y_train, validation_data=(x_test, y_test),
-          epochs=1000, batch_size=32, callbacks=[monitor], verbose=2)
+          epochs=1000, batch_size=32, callbacks=[monitor])
 
 
 pred = model.predict(x_test)
@@ -79,17 +70,19 @@ print("Final score (RMSE): {}".format(score))
 
 from tabgan.sampler import GANGenerator
 
+
 gen_x, gen_y = GANGenerator(gen_x_times=1.1, cat_cols=None,
            bot_filter_quantile=0.001, top_filter_quantile=0.999, \
               is_post_process=True,
            adversarial_model_params={
-               "metrics": "rmse", "max_depth": 2, "max_bin": 100,
+               "metrics": "rmse", "max_depth": 2, "max_bin": 100, 
                "learning_rate": 0.02, "random_state": \
                 42, "n_estimators": 500,
            }, pregeneration_frac=2, only_generated_data=False,\
            gan_params = {"batch_size": 500, "patience": 25, \
-          "epochs" : 500,}).generate_data_pipe(df_x_train,df_y_train,\
+          "epochs" : 500,}).generate_data_pipe(df_x_train, df_y_train,\
           df_x_test, deep_copy=True, only_adversarial=False, \
           use_adversarial=True)
 
 gen_x
+gen_y
