@@ -10,8 +10,7 @@ import requests
 import numpy as np
 from sklearn import metrics
 
-df = pd.read_csv(
-    "https://www.vatche.appboxes.co/mlb2023.csv")
+df = pd.read_csv('mlb2022.csv')
 
 
 COLS_USED = ['Age','G','PA','AB','R','H','2B','3B','HR','RBI','SB','CS','BB','SO','BA','OBP','SLG']
