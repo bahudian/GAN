@@ -52,17 +52,14 @@ y_test = df_y_test.values
 
 # Define the neural network model
 model = Sequential([
-    Dense(64, activation='relu', input_dim=x_train.shape[1]),
-    Dropout(0.3),
-    Dense(32, activation='relu'),
-    Dropout(0.3),
-    Dense(16, activation='relu'),
-    Dropout(0.3),
+    Dense(64, activation='relu', input_dim=x_train.shape[1]), Dropout(0.3),
+    Dense(32, activation='relu'), Dropout(0.3),
+    Dense(16, activation='relu'), Dropout(0.3),
     Dense(1)
 ])
 
 # Compile the model
-model.compile(loss='mean_squared_error', optimizer='adam')
+model.compile(loss='mean_squared_error', optimizer='adamax')
 
 # Define early stopping callback
 monitor = EarlyStopping(monitor='val_loss', min_delta=1e-3, 
