@@ -45,14 +45,14 @@ y_test = df_y_test.values
 # Build the neural network
 model = Sequential()
 # Hidden 1
-model.add(Dense(100, input_dim=x_train.shape[1], activation='relu')) 
-model.add(Dense(50, activation='relu')) # Hidden 2
+model.add(Dense(50, input_dim=x_train.shape[1], activation='relu')) 
 model.add(Dense(25, activation='relu')) # Hidden 2
+model.add(Dense(12, activation='relu')) # Hidden 2
 model.add(Dense(1)) # Output
 model.compile(loss='mean_squared_error', optimizer='adam')
 
 monitor = EarlyStopping(monitor='val_loss', min_delta=1e-3, 
-        patience=100, verbose=1, mode='auto',
+        patience=5, verbose=1, mode='auto',
         restore_best_weights=True)
 model.fit(x_train,y_train,validation_data=(x_test,y_test),
         callbacks=[monitor], verbose=2,epochs=1000)
