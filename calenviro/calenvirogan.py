@@ -9,22 +9,22 @@ import requests
 import numpy as np
 from sklearn import metrics
 
-df = pd.read_csv('mlb2022.csv')
+df = pd.read_csv('calenviro.csv')
 
 # Drop rows with missing values
 df = df.dropna()
 
 # Define columns to use
-COLS_USED = ['Age','G','PA','AB','R','H','2B','3B','HR','RBI','SB','CS','BB','SO','BA','OBP','SLG']
-COLS_TRAIN = ['Age','G','PA','AB','H','2B','3B','HR','RBI','SB','CS','BB','SO','BA','OBP','SLG'] 
+COLS_USED = ['Haz_Waste','Pollution_Burden','Linguistic_Isolation','Poverty','Housing_Burden']
+COLS_TRAIN = ['Traffic','Haz_Waste','Pollution_Burden','Linguistic_Isolation','Poverty','Housing_Burden'] 
 
 # Extract columns for training and testing
 df_train = df[COLS_USED]
 
 # Split into training and test sets
 df_x_train, df_x_test, df_y_train, df_y_test = train_test_split(
-    df.drop("R", axis=1),
-    df["R"],
+    df.drop("Traffic", axis=1),
+    df["Traffic"],
     test_size=0.20,
     #shuffle=False,
     random_state=42,
@@ -50,7 +50,7 @@ model = Sequential([
 ])
 
 # Compile the model
-model.compile(loss='mean_squared_error', optimizer='rmsprop')
+model.compile(loss='mean_squared_error', optimizer='adam')
 
 # Define early stopping callback
 monitor = EarlyStopping(monitor='val_loss', min_delta=1e-3, 
