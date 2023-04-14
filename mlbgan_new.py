@@ -66,7 +66,7 @@ model.compile(loss='mean_squared_error', optimizer='adam')
 
 # Define early stopping callback
 monitor = EarlyStopping(monitor='val_loss', min_delta=1e-3, 
-        patience=5, verbose=1, mode='auto',
+        patience=500, verbose=1, mode='auto',
         restore_best_weights=True)
 
 # Train the model
