@@ -15,48 +15,90 @@ from sklearn import metrics
 df = pd.read_csv('fontan_data.csv')
 print(df.columns)
 
+# Convert VENTDOM to categorical
+
 df["VENTDOM"] = df["VENTDOM"].astype('category').cat.codes
 
-COMP_AGE_MIN = df["COMP_AGE"].min()
-COMP_AGE_MAX = df["COMP_AGE"].max()
-
-FONTAN_AGE_MIN = df["FONTAN_AGE"].min()
-FONTAN_AGE_MAX = df["FONTAN_AGE"].max()
-
-echobsa_MIN = df["echobsa"].min()
-echobsa_MAX = df["echobsa"].max()
-
-echosv_MIN = df["echosv"].min()
-echosv_MAX = df["echosv"].max()
-
-dpdt_MIN = df["dpdt"].min()
-dpdt_MAX = df["dpdt"].max()
-
-tde_MIN = df["tde"].min()
-tde_MAX = df["tde"].max()
-
-tda_MIN = df["tda"].min()
-tda_MAX = df["tda"].max()
-
-BNP_MIN = df["BNP"].min()
-BNP_MAX = df["BNP"].max()
-
-
-df_COMP_AGE = pd.cut(df['COMP_AGE'], bins = np.linspace(COMP_AGE_MIN, COMP_AGE_MAX, 21), labels=False)
-df_FONTAN_AGE = pd.cut(df['FONTAN_AGE'], bins = np.linspace(FONTAN_AGE_MIN, FONTAN_AGE_MAX, 21), labels=False)
-df_echobsa = pd.cut(df['echobsa'], bins = np.linspace(echobsa_MIN, echobsa_MAX, 21), labels = False)
-df_echosv = pd.cut(df['echosv'], bins = np.linspace(echosv_MIN, echosv_MAX, 21), labels = False)
-df_dpdt = pd.cut(df['dpdt'], bins = np.linspace(dpdt_MIN, dpdt_MAX, 21), labels = False)
-df_tde = pd.cut(df['tde'], bins = np.linspace(tde_MIN, tde_MAX, 21), labels=False)
-df_tda = pd.cut(df['tda'], bins = np.linspace(tda_MIN, tda_MAX, 21), labels=False)
-df_BNP = pd.cut(df['BNP'], bins = np.linspace(BNP_MIN, BNP_MAX, 21), labels=False)
-
-df.drop(["COMP_AGE", "FONTAN_AGE", "echobsa", "echosv", "dpdt", "tde", "tda", "BNP"], axis=1, inplace=True)
-
-df = pd.concat([df, df_COMP_AGE, df_FONTAN_AGE, df_echobsa, df_echosv, df_dpdt, df_tde, df_tda, df_BNP], axis=1)
-
-df[df.columns] = PowerTransformer(method='yeo-johnson', standardize=True, copy=True).fit_transform(df[df.columns])
-
+# Drop rows with missing values
 df.dropna()
+
+# Define columns to use
+
+COLS_USED = ['VENTDOM', 'COMP_AGE', 'FONTAN_AGE', 'NUMASSOC', 'NUMPROC', 'FENESTRN', 'NUMSURG', 'NUM_CATH', 'NUMSTRKE', 'SEIZURE', 'NUMTHRM', 'PLE', 'NUMARRHY', 'echobsa', 'echosv', 'dpdt', 'tde', 'tda', 'BNP']
+
+COLS_TRAIN = ['VENTDOM', 'COMP_AGE', 'NUMASSOC', 'NUMPROC', 'FENESTRN', 'NUMSURG', 'NUM_CATH', 'NUMSTRKE', 'SEIZURE', 'NUMTHRM', 'PLE', 'NUMARRHY', 'echobsa', 'echosv', 'dpdt', 'tde', 'tda', 'BNP']
+
+# Extract columns for training and testing
+df_train = df[COLS_USED]
+
+# Split into training and test sets
+df_x_train, df_x_test, df_y_train, df_y_test = train_test_split(
+    df.drop("FONTAN_AGE", axis=1),
+    df["FONTAN_AGE"],
+    test_size=0.20,
+    #shuffle=False,
+    random_state=42,
+)
+
+# Create dataframe versions for tabular GAN
+df_x_test, df_y_test = df_x_test.reset_index(drop=True), \
+  df_y_test.reset_index(drop=True)
+df_y_train = pd.DataFrame(df_y_train)
+df_y_test = pd.DataFrame(df_y_test)
+
+# Pandas to Numpy
+x_train = df_x_train.values
+x_test = df_x_test.values
+y_train = df_y_train.values
+y_test = df_y_test.values
+
+# Define the neural network model
+model = Sequential([
+    Dense(64, activation='relu', input_dim=x_train.shape[1]), Dropout(0.3),
+    Dense(32, activation='relu'), Dropout(0.3),
+    Dense(16, activation='relu'), Dropout(0.3),
+    Dense(1)
+])
+
+# Compile the model
+model.compile(loss='mean_squared_error', optimizer='rmsprop')
+
+# Define early stopping callback
+monitor = EarlyStopping(monitor='val_loss', min_delta=1e-3,
+        patience=500, mode='auto',
+        restore_best_weights=True)
+
+# Train the model
+model.fit(x_train, y_train, validation_data=(x_test, y_test),
+          epochs=1000, batch_size=32, callbacks=[monitor])
+
+
+pred = model.predict(x_test)
+score = np.sqrt(metrics.mean_squared_error(pred,y_test))
+print("Final score (RMSE): {}".format(score))
+
+# Generate new patients
+
+from tabgan.sampler import GANGenerator
+
+
+gen_x, gen_y = GANGenerator(gen_x_times=1.1, cat_cols=None,
+           bot_filter_quantile=0.001, top_filter_quantile=0.999, \
+              is_post_process=True,
+           adversarial_model_params={
+               "metrics": "rmse", "max_depth": 2, "max_bin": 100,
+               "learning_rate": 0.02, "random_state": \
+                42, "n_estimators": 500,
+           }, pregeneration_frac=2, only_generated_data=False,\
+           gan_params = {"batch_size": 500, "patience": 25, \
+          "epochs" : 500,}).generate_data_pipe(df_x_train, df_y_train,\
+          df_x_test, deep_copy=True, only_adversarial=False, \
+          use_adversarial=True)
+
+gen_x
+gen_y
+
+
+
 
 
